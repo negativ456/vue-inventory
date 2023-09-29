@@ -2,7 +2,7 @@
 import type { Item } from '@/entities/Item'
 import close from '@/shared/assets/close.svg'
 interface ItemInfoProps {
-  item: Item
+  item: Item | null
 }
 defineProps<ItemInfoProps>()
 </script>
@@ -11,7 +11,7 @@ defineProps<ItemInfoProps>()
   <div class="info-wrapper">
     <div class="info">
       <img @click="$emit('onClose')" :src="close" alt="close" class="close" />
-      <img :src="item.image" alt="item" class="item-img" />
+      <img :src="item?.image" alt="item" class="item-img" />
       <div class="content">
         <hr class="line" />
         <slot />

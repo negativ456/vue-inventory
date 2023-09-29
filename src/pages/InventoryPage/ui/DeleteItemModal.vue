@@ -4,14 +4,14 @@ import type { Item } from '@/entities/Item'
 import { ref } from 'vue'
 import { useInventoryStore } from '../model/store/inventoryStore'
 interface DeleteItemModalProps {
-  item: Item
+  item: Item | null
   onClose: () => void
 }
 const props = defineProps<DeleteItemModalProps>()
 const inventoryStore = useInventoryStore()
 const isConfirmation = ref(false)
 const onDelete = () => {
-  inventoryStore.deleteItem(props.item.id)
+  if (props.item) inventoryStore.deleteItem(props.item.id)
   props.onClose()
 }
 </script>
