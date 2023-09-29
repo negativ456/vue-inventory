@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { useInventoryStore } from '../model/store/inventoryStore'
 import ItemComponent from '@/entities/Item/ui/ItemComponent.vue'
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onBeforeMount, onMounted, onUnmounted, ref } from 'vue'
 import type { Item } from '@/entities/Item'
+import DeleteItemModal from '@/pages/InventoryPage/ui/DeleteItemModal.vue'
 
 const inventoryStore = useInventoryStore()
 const cellSize = 105
@@ -10,30 +11,33 @@ const horizontalSlots = 5
 const verticalSlots = 5
 const containerRef = ref<HTMLDivElement | null>(null)
 const held = ref()
+const isOpen = ref(false)
 
 const containerRect = computed(() => {
   return containerRef.value?.getBoundingClientRect()
 })
 
 const onMouseDown = (e: MouseEvent, item: Item) => {
-  held.value = {
-    item,
-    ref: item.ref,
-    offset: {
-      x: e.offsetX,
-      y: e.offsetY
-    },
-    x: item.x * cellSize,
-    y: item.y * cellSize,
-    lastX: item.x * cellSize,
-    lastY: item.y * cellSize
-  }
-  // held.value.lastX = held.value.x
-  // held.value.lastY = held.value.y
-  console.log(e.offsetX)
-  if (containerRect.value) {
-    held.value.ref.style.left = e.clientX - containerRect.value.x - e.offsetX + 'px'
-    held.value.ref.style.top = e.clientY - containerRect.value.y - e.offsetY + 'px'
+  if (e.button === 0) {
+    held.value = {
+      item,
+      ref: item.ref,
+      offset: {
+        x: e.offsetX,
+        y: e.offsetY
+      },
+      x: item.x * cellSize,
+      y: item.y * cellSize,
+      lastX: item.x * cellSize,
+      lastY: item.y * cellSize
+    }
+    // held.value.lastX = held.value.x
+    // held.value.lastY = held.value.y
+    console.log(e.offsetX)
+    if (containerRect.value) {
+      held.value.ref.style.left = e.clientX - containerRect.value.x - e.offsetX + 'px'
+      held.value.ref.style.top = e.clientY - containerRect.value.y - e.offsetY + 'px'
+    }
   }
 }
 const onMouseMove = (e: MouseEvent) => {
@@ -83,6 +87,7 @@ const drop = () => {
   held.value.ref.style.left = held.value.item.x * cellSize + 'px'
   held.value.ref.style.top = held.value.item.y * cellSize + 'px'
   held.value = null
+  inventoryStore.saveToStorage()
 }
 const onMouseUp = (e: MouseEvent) => {
   if (held.value && containerRect.value) {
@@ -110,6 +115,19 @@ const onMouseUp = (e: MouseEvent) => {
     drop()
   }
 }
+
+const openMenu = (e: MouseEvent, item: Item) => {
+  e.preventDefault()
+  inventoryStore.setSelectedItem(item)
+  isOpen.value = true
+}
+const closeMenu = () => {
+  inventoryStore.setSelectedItem(null)
+  isOpen.value = false
+}
+onBeforeMount(() => {
+  inventoryStore.getItemsFromStorage()
+})
 onMounted(() => {
   init()
   document.addEventListener('mousemove', onMouseMove)
@@ -133,12 +151,20 @@ onUnmounted(() => {
             :ref="(el) => (el ? (item.ref = el as HTMLDivElement) : null)"
             @mousedown="onMouseDown($event, item)"
             @mouseup="onMouseUp"
+            @contextmenu="openMenu($event, item)"
             :key="item.id"
             class="item_wrapper"
           >
             <ItemComponent :item="item" />
           </div>
         </div>
+        <transition name="modal">
+          <DeleteItemModal
+            v-if="isOpen"
+            :on-close="closeMenu"
+            :item="inventoryStore.selectedItem"
+          />
+        </transition>
       </div>
     </div>
   </div>
@@ -187,5 +213,15 @@ onUnmounted(() => {
   position: absolute;
   top: 0;
   left: 0;
+}
+
+.modal-enter-active,
+.modal-leave-active {
+  transition: all 0.5s ease;
+}
+.modal-enter-from,
+.modal-leave-to {
+  opacity: 0;
+  transform: translateX(30px);
 }
 </style>
